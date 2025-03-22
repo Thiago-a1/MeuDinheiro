@@ -1,0 +1,15 @@
+﻿@rendermode InteractiveServer
+
+@using MeuDinheiro.Components.Shared
+
+<MudDialog Class="px-4 py-1" Style="width: 500px; height: 470px;">
+    <DialogContent>
+        <MudText Typo="Typo.h6" Style="font-weight: 600;" Class="mb-2">Cadastrar Transação</MudText>
+        <TransactionForm />
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+}

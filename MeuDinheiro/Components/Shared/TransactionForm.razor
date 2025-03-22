@@ -1,0 +1,177 @@
+﻿@rendermode InteractiveServer
+@inject TransactionModel transactionModel
+
+@using MeuDinheiro.Models
+@using System.Globalization
+@using FluentValidation
+
+<MudForm @ref="@form" 
+         Model="@transaction" 
+         Spacing="2" 
+         Validation="@validationRules.ValidateValue"
+         ValidationDelay="0">
+    <MudTextField T="string"
+                  @bind-Value="transaction.Titulo"
+                  Label="Titulo"
+                  Variant="Variant.Outlined"
+                  For="@(() => transaction.Titulo)"
+                  FullWidth="true"
+                  Immediate="true"/>
+    <MudTextField T="string"
+                  @bind-Value="transaction.PrecoString"
+                  Label="Preço"
+                  Variant="Variant.Outlined"
+                  OnKeyUp="FormatCurrency"
+                  Adornment="Adornment.Start"
+                  AdornmentText="R$"
+                  TextUpdateSuppression="false"
+				  FullWidth="true"
+                  Immediate="true"/>
+    <MudToggleGroup T="string"
+                    SelectionMode="SelectionMode.ToggleSelection"
+                    @bind-Value="transaction.Tipo"
+                    Color="@(transaction.Tipo.Contains("entrada") ? Color.Success : Color.Error)"
+                    Size="Size.Large"
+                    Style="width: 100%"
+                    CheckMark>
+        <MudToggleItem Value=@("entrada") Text="Entrada" SelectedIcon="@Icons.Material.Filled.ArrowCircleUp" />
+        <MudToggleItem Value=@("saida") Text="Saida" SelectedIcon="@Icons.Material.Filled.ArrowCircleDown" />
+    </MudToggleGroup>
+    <MudTextField T="string"
+                  @bind-Value="transaction.Categoria"
+                  Label="Categoria"
+                  Variant="Variant.Outlined"
+                  For="@(() => transaction.Categoria)"
+                  FullWidth="true"
+                  Immediate="true"/>
+
+    <MudButton Class="mt-2" 
+               Variant="Variant.Filled"
+               Color="Color.Success"
+               DropShadow="false"
+               FullWidth="true"
+               Size="Size.Large"
+               Style="font-weight: 700;"
+               OnClick="@(async () => await Submit())">
+        Cadastrar
+    </MudButton>
+</MudForm>
+
+@code {
+    [Parameter]
+    public bool isDialog { get; set; } = true;
+
+	[Parameter]
+	public EventCallback OnTRansactionSubmitted { get; set; }
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; }
+
+    MudForm form;
+
+    TransactionModelFluentValidator validationRules = new TransactionModelFluentValidator();
+
+    Transaction transaction = new Transaction();
+
+    private class Transaction
+    {
+        public string Titulo { get; set; } = string.Empty;
+        public decimal Preco { get; set; } = 0.00M;
+        public string PrecoString
+        {
+            get => Preco.ToString("0.00", CultureInfo.InvariantCulture);
+            set => Preco = decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var result) ? result : 0.00M;
+        }
+        public string Tipo { get; set; } = "entrada";
+        public string Categoria { get; set; } = string.Empty;
+    }
+
+    private class TransactionModelFluentValidator : AbstractValidator<Transaction>
+    {
+        public TransactionModelFluentValidator()
+        {
+            RuleFor(x => x.Titulo)
+                .NotEmpty()
+                .WithMessage("O Titulo deve ser informado.")
+                .Length(1, 100);
+
+            // RuleFor(x => x.Preco)
+            //     .Must(preco => preco <= 0)
+            //     .WithMessage("O Preço não pode ser zero.");
+
+            RuleFor(x => x.Categoria)
+                 .NotEmpty()
+                 .WithMessage("A Categoria deve ser informada.")
+                 .Length(1, 40);
+        }
+
+        public Func<object, string, Task<IEnumerable<string>>> ValidateValue => async (model, propertyName) =>
+        {
+            var result = await ValidateAsync(ValidationContext<Transaction>.CreateWithOptions((Transaction)model, x => x.IncludeProperties(propertyName)));
+            if (result.IsValid)
+                return Array.Empty<string>();
+            return result.Errors.Select(e => e.ErrorMessage);
+        };
+    }
+
+    private async Task Submit()
+    {
+        await form.Validate();
+
+        if (form.IsValid)
+        {
+            var newTransaction = new TransactionModel(
+                transaction.Titulo,
+                transaction.Preco,
+                transaction.Tipo,
+                transaction.Categoria);
+
+            transactionModel.AddTransaction(newTransaction);
+
+            if (isDialog)
+            {
+                Dialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+				transaction = new Transaction();
+
+                await OnTRansactionSubmitted.InvokeAsync();
+            }
+        }
+    }
+
+    private void FormatCurrency()
+    {
+        // if (transaction.Preco.Length <= 2)
+        // {
+        //     transaction.Preco = "0,00";
+        //     return;
+        // }
+
+        string cleanInput = new string(transaction.Preco.ToString().Where(c => char.IsDigit(c) || c == '.' || c == ',').ToArray());
+
+        cleanInput = cleanInput.Replace(",", ".");
+
+        var valueRemoved = cleanInput.Replace(".", "");
+
+        var sizeSliced = valueRemoved.Length - 2;
+
+        var startString = valueRemoved.Substring(0, sizeSliced).Split("");
+
+        var endString = valueRemoved.Substring(sizeSliced).Split("");
+
+        var newValue = new string[startString.Length + endString.Length + 1];
+
+        newValue = [startString[0], ".", endString[0]];
+
+        var newValueString = String.Join("", newValue).Replace(".", ",");
+
+        // if (newValueString[0] == '0')
+        // {
+        //     newValueString = newValueString.Substring(1, newValueString.Length -1);
+        // };
+
+        transaction.Preco = decimal.Parse(newValueString);
+    }
+}

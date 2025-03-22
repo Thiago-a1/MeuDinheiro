@@ -1,0 +1,150 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@inject IJSRuntime JSRuntime
+@inject IDialogService DialogService
+@inject TransactionModel transactionModel
+
+@using MeuDinheiro.Components.Dialogs
+@using MeuDinheiro.Components.Shared
+@using MeuDinheiro.Models
+
+<MudPopoverProvider />
+<MudDialogProvider CloseButton="true" MaxWidth="MaxWidth.Large" />
+<MudSnackbarProvider />
+
+<MudContainer Fixed="true" 
+              MaxWidth="MaxWidth.ExtraLarge" 
+              Class="mt-n6 d-flex z-10 justify-space-between">
+    <div class="d-flex flex-grow-1 gap-4 align-center">
+        <MudIcon Class="z-10" Icon="@Icons.Material.Filled.Paid" Color="@Color.Success" Size="Size.Large" />
+        <MudText Class="z-10" Typo="@Typo.h5" HtmlTag="h1" Style="color:#FFF">Meu Dinheiro</MudText>
+    </div>
+
+    <MudButton Variant="Variant.Filled"
+               DropShadow="false"
+               Color="Color.Primary"
+               Style="font-weight:700;"
+               OnClick="@(isMobile ? openDrawer : openDialogAsync)">Nova Transação</MudButton>
+
+</MudContainer>
+
+<MudContainer Fixed="true" MaxWidth="MaxWidth.ExtraLarge" Class="mt-15 z-10 overflow-y-hidden">
+    <MudStack Row="true" Spacing="4" Justify="Justify.SpaceBetween">
+        <MudCard Class="pa-4 z-10" Elevation="0" Width="350px" Height="132px">
+            <div class="mb-5 d-flex justify-space-between align-center" style="width:320px">
+                <MudText Typo="Typo.subtitle1">Entradas</MudText>
+                <MudIcon Class="z-10" 
+                         Icon="@Icons.Material.Filled.ArrowCircleUp" 
+                         Color="@Color.Success" 
+                         Size="Size.Large" />
+            </div>
+            <MudText Typo="Typo.h4">@Entradas.ToString("C")</MudText>
+        </MudCard>
+        <MudCard Class="pa-4 z-10 fixed-width" Elevation="0" Width="350px" Height="132px">
+            <div class="mb-5 d-flex justify-space-between align-center" style="width:320px">
+                <MudText Typo="Typo.subtitle1">Saídas</MudText>
+                <MudIcon Class="z-10" 
+                         Icon="@Icons.Material.Filled.ArrowCircleDown" 
+                         Color="@Color.Error" 
+                         Size="Size.Large" />
+            </div>
+            <MudText Typo="Typo.h4">@Saidas.ToString("C")</MudText>
+        </MudCard>
+        <MudCard Class="pa-4 z-10 fixed-width mud-theme-success" Elevation="0" Width="350px" Height="132px">
+            <div class="mb-5 d-flex justify-space-between align-center" style="width:320px">
+                <MudText Typo="Typo.subtitle1">Total</MudText>
+                <MudIcon Class="z-10" Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Large" />
+            </div>
+            <MudText Typo="Typo.h4">@Total.ToString("C")</MudText>
+        </MudCard>
+    </MudStack>
+</MudContainer>
+
+<MudContainer Fixed="true" MaxWidth="MaxWidth.ExtraLarge" Class="mt-15 z-10">
+    <MudDataGrid @ref="dataGrid" T="TransactionModel" Items="@transactionModel.TransactionList" Hover="true">
+        <Columns>
+            <PropertyColumn Property="x => x.Titulo" Title="Titulo" />
+            <PropertyColumn Property="x => x.Preco" Format="C" Title="Preço" CellStyleFunc="@_cellStyleFunc" />
+            <PropertyColumn Property="x => x.Categoria" Title="Categoria" />
+            <PropertyColumn Property="x => x.Data" Format="dd/MM/yyyy" Title="Data" />
+        </Columns>
+    </MudDataGrid>
+</MudContainer>
+
+<MudDrawer @bind-Open="@drawerOpen"
+           Class="rounded-t-lg px-4 py-2"
+           Anchor="Anchor.Bottom"
+           Width="100"
+           Height="@(!drawerOpen ? "0px" : "420px")"
+           Elevation="1"
+           Variant="@DrawerVariant.Temporary">
+    <MudDrawerContainer>
+        <MudText Typo="Typo.h6" Class="my-3" Style="font-weight: 600">Cadastrar Transação</MudText>
+        <TransactionForm isDialog="false" OnTRansactionSubmitted="openDrawer" />
+    </MudDrawerContainer>
+</MudDrawer>
+
+@code {
+    MudDataGrid<TransactionModel> dataGrid;
+
+    bool drawerOpen = false;
+    bool isMobile = false;
+
+    public decimal Entradas => transactionModel.TransactionList.Where<TransactionModel>(x => x.Tipo == "entrada").Sum(x => x.Preco);
+    public decimal Saidas => transactionModel.TransactionList.Where<TransactionModel>(x => x.Tipo == "saida").Sum(x => x.Preco);
+    public decimal Total => Entradas - Saidas;
+
+    private class ScreenSize
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var screenSize = await JSRuntime.InvokeAsync<ScreenSize>("getScreenSize");
+        var screenWidth = screenSize.Width;
+        var screenHeight = screenSize.Height;
+
+        if (screenWidth < 768)
+        {
+            isMobile = true;
+            StateHasChanged();
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private Func<TransactionModel, string> _cellStyleFunc => X =>
+    {
+        string style = "";
+
+        if (X.Tipo == "entrada")
+        {
+            style += "color:#3dcb6c;";
+        } else if (X.Tipo == "saida")
+        {
+            style += "color:#ff3f5f;";
+        }
+
+        return style;
+    };
+
+    private void openDrawer()
+    {
+        drawerOpen = !drawerOpen;
+    }
+
+    private async void openDialogAsync()
+    {
+        var dialog = await DialogService.ShowAsync<NewTransactionDialog>();
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await dataGrid.ReloadServerData();
+            StateHasChanged();
+        };
+    }
+}
