@@ -25,7 +25,7 @@
                   Adornment="Adornment.Start"
                   AdornmentText="R$"
                   TextUpdateSuppression="false"
-				  FullWidth="true"
+                  FullWidth="true"
                   Immediate="true"/>
     <MudToggleGroup T="string"
                     SelectionMode="SelectionMode.ToggleSelection"
@@ -61,8 +61,8 @@
     [Parameter]
     public bool isDialog { get; set; } = true;
 
-	[Parameter]
-	public EventCallback OnTRansactionSubmitted { get; set; }
+    [Parameter]
+    public EventCallback OnTRansactionSubmitted { get; set; }
 
     [CascadingParameter]
     private IMudDialogInstance Dialog { get; set; }
@@ -134,7 +134,7 @@
             }
             else
             {
-				transaction = new Transaction();
+                transaction = new Transaction();
 
                 await OnTRansactionSubmitted.InvokeAsync();
             }
@@ -143,12 +143,6 @@
 
     private void FormatCurrency()
     {
-        // if (transaction.Preco.Length <= 2)
-        // {
-        //     transaction.Preco = "0,00";
-        //     return;
-        // }
-
         string cleanInput = new string(transaction.Preco.ToString().Where(c => char.IsDigit(c) || c == '.' || c == ',').ToArray());
 
         cleanInput = cleanInput.Replace(",", ".");
@@ -166,11 +160,6 @@
         newValue = [startString[0], ".", endString[0]];
 
         var newValueString = String.Join("", newValue).Replace(".", ",");
-
-        // if (newValueString[0] == '0')
-        // {
-        //     newValueString = newValueString.Substring(1, newValueString.Length -1);
-        // };
 
         transaction.Preco = decimal.Parse(newValueString);
     }

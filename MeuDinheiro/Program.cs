@@ -1,6 +1,7 @@
 using MudBlazor.Services;
 using MeuDinheiro.Components;
 using MeuDinheiro.Models;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,10 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 var app = builder.Build();
+
+var culture = new CultureInfo("pt-BR");
+CultureInfo.DefaultThreadCurrentCulture = culture;
+CultureInfo.DefaultThreadCurrentUICulture = culture;
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
