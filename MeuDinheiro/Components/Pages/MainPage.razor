@@ -75,9 +75,10 @@
            Class="rounded-t-lg px-4 py-2"
            Anchor="Anchor.Bottom"
            Width="100"
-           Height="@(!drawerOpen ? "0px" : "420px")"
+           Height="420px"
            Elevation="1"
-           Variant="@DrawerVariant.Temporary">
+           Variant="@DrawerVariant.Temporary"
+           Style="@(!drawerOpen ? "Display: none" : "")">
     <MudDrawerContainer>
         <MudText Typo="Typo.h6" Class="my-3" Style="font-weight: 600">Cadastrar Transação</MudText>
         <TransactionForm isDialog="false" OnTRansactionSubmitted="openDrawer" />
