@@ -11,7 +11,7 @@ jobs:
       - name: Obter o Codigo do repositorio
         uses: actions/checkout@v4.2.2
       - name: Login no Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v${{ github.run_number }}
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
