@@ -1,6 +1,6 @@
 name: CI-CD
 on:
-  pull_request:
+  merge_group:
     branches: ["main"]
   workflow_dispatch:
 
