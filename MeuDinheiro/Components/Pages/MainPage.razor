@@ -1,6 +1,6 @@
 ﻿@page "/"
 @rendermode InteractiveServer
-@inject IJSRuntime JSRuntime
+
 @inject IDialogService DialogService
 @inject TransactionModel transactionModel
 
@@ -20,11 +20,21 @@
         <MudText Class="z-10" Typo="@Typo.h5" HtmlTag="h1" Style="color:#FFF">Meu Dinheiro</MudText>
     </div>
 
-    <MudButton Variant="Variant.Filled"
-               DropShadow="false"
-               Color="Color.Primary"
-               Style="font-weight:700;"
-               OnClick="@(isMobile ? openDrawer : openDialogAsync)">Nova Transação</MudButton>
+    <MudHidden Breakpoint="Breakpoint.SmAndDown">
+        <MudButton Variant="Variant.Filled"
+                   DropShadow="false"
+                   Color="Color.Primary"
+                   Style="font-weight:700;"
+                   OnClick="openDialogAsync">Nova Transação Dialog</MudButton>
+    </MudHidden>
+
+    <MudHidden Breakpoint="Breakpoint.SmAndUp">
+        <MudButton Variant="Variant.Filled"
+                   DropShadow="false"
+                   Color="Color.Primary"
+                   Style="font-weight:700;"
+                   OnClick="openDrawer">Nova Transação Drawer</MudButton>
+    </MudHidden>
 
 </MudContainer>
 
@@ -78,6 +88,7 @@
            Height="420px"
            Elevation="1"
            Variant="@DrawerVariant.Temporary"
+					 OverlayAutoClose="false"
            Style="@(!drawerOpen ? "Display: none" : "")">
     <MudDrawerContainer>
         <MudText Typo="Typo.h6" Class="my-3" Style="font-weight: 600">Cadastrar Transação</MudText>
@@ -89,7 +100,6 @@
     MudDataGrid<TransactionModel> dataGrid;
 
     bool drawerOpen = false;
-    bool isMobile = false;
 
     public decimal Entradas => transactionModel.TransactionList.Where<TransactionModel>(x => x.Tipo == "entrada").Sum(x => x.Preco);
     public decimal Saidas => transactionModel.TransactionList.Where<TransactionModel>(x => x.Tipo == "saida").Sum(x => x.Preco);
@@ -99,21 +109,6 @@
     {
         public int Width { get; set; }
         public int Height { get; set; }
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        var screenSize = await JSRuntime.InvokeAsync<ScreenSize>("getScreenSize");
-        var screenWidth = screenSize.Width;
-        var screenHeight = screenSize.Height;
-
-        if (screenWidth < 768)
-        {
-            isMobile = true;
-            StateHasChanged();
-        }
-
-        await base.OnAfterRenderAsync(firstRender);
     }
 
     private Func<TransactionModel, string> _cellStyleFunc => X =>
