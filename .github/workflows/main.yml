@@ -11,7 +11,7 @@ jobs:
       - name: Obter o Codigo do repositorio
         uses: actions/checkout@v4.2.2
       - name: Login no Docker Hub
-        uses: docker/login-action@v${{ github.run_number }}
+        uses: docker/login-action@v3
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -21,11 +21,20 @@ jobs:
           context: "./MeuDinheiro"
           push: true
           file: "./MeuDinheiro/Dockerfile"
-          tags: sirzechhs/meudinheiro:v3
+          tags: |
+            sirzechhs/meudinheiro:v${{ github.run_number }}
+            sirzechhs/meudinheiro
   CD:
     needs: [CI]
     runs-on: ubuntu-latest
     steps:
-      - run: echo "obter codigo"
-      - run: echo "configurar o kubeconfig"
-      - run: echo "executar apply"
+      - name: Obter o Codigo do repositorio
+        uses: actions/checkout@v4.2.2
+      - uses: azure/k8s-set-context@v4
+        with:
+           method: kubeconfig
+           kubeconfig: ${{ secrets.K8S_KUBECONFIG }}
+      - uses: Azure/k8s-deploy@v5
+        with:
+          manifests: k8s/deployment.yaml
+          images: sirzechhs/meudinheiro:v${{ github.run_number }}
